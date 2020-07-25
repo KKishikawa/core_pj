@@ -27,9 +27,6 @@ cd frontend
 npm i axios
 ```
 
-
-## frontend フォルダ下にtsコンパイル用の設定ファイルを設置
-
 # Project直下の設定ファイルの変更
 
 ## Webpackの設定
