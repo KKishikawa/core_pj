@@ -1,0 +1,21 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.bat]
+end_of_line = crlf
+
+[*.{yml,json,scss,css,html,js,ts,vue,neon}]
+indent_size = 2
+
+[*.html]
+insert_final_newline = false
+
+[*.md]
+trim_trailing_whitespace = false
