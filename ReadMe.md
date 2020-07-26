@@ -1,3 +1,9 @@
+# ASP.NET Core MVC 3.1 + Vue (TypeScript)構成のテンプレート
+
+デバック実行時、ビルド時にサーバーサイドのリソースだけでなく、フロントエンドのリソースに対しても操作するように環境構築。
+テンプレートの動作確認のためにMVCで構築しているが、WebApiで構築する場合は、`dotnet new mvc`の箇所を、`dotnet new webapi`にする。
+TypeScriptはvue-cliからインストールしているだけなので、wwwroot配下にもTypescriptを設置したい場合は、別途dotnet側でTypescriptへのコンパイル設定が必要になる。
+
 # Projectの作成
 
 ```
@@ -8,8 +14,10 @@ dotnet add package Microsoft.VisualStudio.Web.CodeGeneration.Design
 dotnet tool install --global dotnet-aspnet-codegenerator
 ```
 
-# Nodeパッケージのインストール
+# vue-cliのインストール
 
+vue-cliはプロジェクトに対してではなく、端末に対してインストールするため、
+すでにインストールしている場合は実行する必要はない。
 ```
 npm i -g @vue-cli
 ```
@@ -19,112 +27,27 @@ npm i -g @vue-cli
 ```
 vue ui
 ```
-ブラウザからvueプロジェクトの作成を行う事ができる。
+ブラウザからGUI操作でvueプロジェクトの作成/管理を行う事ができる。    
+すでにプロジェクトをいくつか作成している場合は、作成済みのプロジェクトの管理ページが開くことがあるが、
+その場合は、画面左上に表示されているプロジェクト名をクリックしてvueプロジェクトマネージャーを開くこと。
+
+プリセットを手動にし、TypeScript、Router、Vuexを選択する。 
+Linter/Formatterはコーディング規約を厳密にするためのモジュールなので、プロジェクトに合わせて選択するかを選ぶ。
+コンポーネントをクラス記法で記述できるように、`Use Class-Syntax...`はチェックを入れる。  
+IEで動かすにはJavaScriptをES5にコンパイルする必要があるため、`Use Babel alongside...`はチェックを外しておく。（ここにチェックを入れると、TargetがES2015になる。）  
+`Use History mode...`はチェックを入れる。
+Vue Routerは、画面内の移動としてブラウザに認識させるために、コンパイル後にSPA内のRoutingパスのRootに#をつける**ハッシュモード**で動作する。    
+ただし、サーバ側でfall-backルートをSPAのビルド後のパスに設定すれば、**History mode**で動作する。  
+History modeの仕組み上、サーバ側でrootingマッチしなかった場合は常にSPAを返すようになるため、ルートマッチングしなかった場合の404ページはSPA側で用意する必要がある。
 
 ajaxでフロントエンド側とサーバのやり取りをするため、axiosをインストールしておく。
 ```
 cd frontend
 npm i axios
 ```
+その他フロントエンドアプリにモジュールを追加する必要がある場合は、frontendフォルダ内で`npm i`を実行すること。
 
 # Project直下の設定ファイルの変更
-
-## Webpackの設定
-
-開発環境と本番環境で設定を分ける。  
-（開発環境ではNodeでホストして実行/デバッグを行うが、本番環境ではビルド後の静的ファイルを使用するため。）   
-HTMLLoaderなどは特に不要。
-
-webpack.common.js
-```js
-const path = require('path');
-const VueLoaderPlugin = require('vue-loader/lib/plugin');
-
-module.exports = {
-    entry: { main: './Frontend/index.ts' },
-    output: {
-        path: path.resolve(__dirname, 'wwwroot'),
-        filename: 'js/[name].js',
-        publicPath: '/'
-    },
-    resolve: {
-        extensions: ['.ts', '.js', '.vue', '.json'],
-        alias: {
-            'vue$': 'vue/dist/vue.esm.js'
-        }
-    },
-    module: {
-        rules: [
-            {
-                test: /\.vue$/,
-                loader: 'vue-loader',
-                options: {}
-            },
-            {
-                test: /\.tsx?$/,
-                loader: 'ts-loader',
-                exclude: /node_modules/,
-                options: {
-                    appendTsSuffixTo: [/\.vue$/]
-                }
-            }
-        ]
-    },
-    plugins: [
-        new VueLoaderPlugin(),
-    ]
-};
-```
-
-開発環境ではデバッグのためにソースマップを有効にする。
-
-webpack.dev.js
-```js
-const merge = require('webpack-merge');
-const common = require('./webpack.common.js');
-
-module.exports = merge(common, {
-    mode: 'development',
-    devtool: 'inline-source-map',
-    devServer: {
-        contentBase: './wwwroot',
-    }
-});
-```
-
-本番環境ではminifyする。
-
-webpack.prod.js
-```js
-const merge = require('webpack-merge');
-const common = require('./webpack.common.js');
-const TerserPlugin = require('terser-webpack-plugin');
-
-module.exports = merge(common, {
-    mode: 'production',
-    optimization: {
-        minimizer: [
-            new TerserPlugin({
-                terserOptions: { ecma: 5, compress: true,
-                    output: { comments: false, beautify: false }
-                }
-            })
-        ]
-    }
-});
-```
-
-## package.jsonを編集して、Webpackのコマンドを呼び分ける
-
-package.json
-```diff
-"scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-+   "build": "webpack --config webpack.dev.js"
-+   "release": "webpack --config webpack.prod.js"
-
-  },
-```
 
 ## 本番用にcsprojを編集する
 
